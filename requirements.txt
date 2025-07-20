@@ -8,3 +8,4 @@ groq
 markdown2
 instructor
 pydantic
+bs4
