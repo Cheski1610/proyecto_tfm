@@ -4,11 +4,18 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import xml.etree.ElementTree as ET
 import requests
+from bs4 import BeautifulSoup
+import os
 import instructor
 from smolagents import CodeAgent, ToolCallingAgent, DuckDuckGoSearchTool
 from prophet import Prophet
 from groq import Groq
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+load_dotenv()
+# Cargar las variables de entorno
+SCRAPE_API = os.getenv("SCRAPE_API")
 
 # Agente autorregresivo
 ##----------------------------------------------------##
@@ -116,6 +123,26 @@ class PredictionAgent(CodeAgent):
         forecast = model.predict(future)
         return forecast[['ds','yhat']]
 
+# Creación de Clase Modificada para DuckDuckGoSearchTool
+class ScraperAPIDuckDuckGoSearchTool(DuckDuckGoSearchTool):
+    def __init__(self, api_key):
+        self.api_key = api_key
+
+    def __call__(self, query: str) -> str:
+        ddg_url = f"https://html.duckduckgo.com/html?q={requests.utils.quote(query)}"
+        scraper_url = "http://api.scraperapi.com"
+        params = {
+            "api_key": self.api_key,
+            "url": ddg_url
+        }
+
+        try:
+            response = requests.get(scraper_url, params=params, timeout=10)
+            response.raise_for_status()
+            return response.text
+        except requests.RequestException as e:
+            return f"Error con ScraperAPI: {e}"
+
 # Definir el agente para obtener noticias
 class NewsAgent(CodeAgent):
     def __init__(self, variable, end_date, forecast, api_key):
@@ -126,11 +153,28 @@ class NewsAgent(CodeAgent):
 
     def run(self):
         # Definir herramienta de búsqueda
-        search_tool = DuckDuckGoSearchTool()
+        # search_tool = DuckDuckGoSearchTool()
+        search_tool = ScraperAPIDuckDuckGoSearchTool(api_key=SCRAPE_API)
         # Definir el tema de la búsqueda
         query = f"Noticias de Costa Rica de {self.variable} cercanas al {self.end_date}"
         # Realizar la búsqueda
         results = search_tool(query)
+        # Depurar los resultados para conservar solo la información relevante
+        soup = BeautifulSoup(results, 'html.parser')
+        results = soup.select('div.result')
+        noticias = []
+        for r in results:
+            titulo = r.select_one('.result__a')
+            descripcion = r.select_one('.result__snippet')
+            url = titulo['href'] if titulo else ''
+            
+            noticia = {
+                'titulo': titulo.get_text(strip=True) if titulo else '',
+                'descripcion': descripcion.get_text(strip=True) if descripcion else '',
+                'url': f"https:{url}" if url.startswith("//") else url
+            }
+            noticias.append(noticia)
+        results = noticias
         # Definir salida estructurada
         class NewsResume(BaseModel):
             cantidad_noticias: int

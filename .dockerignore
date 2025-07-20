@@ -1,1 +1,4 @@
 tfm/
+.gitignore
+README.md
+.git
