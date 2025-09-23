@@ -20,7 +20,7 @@ def run():
 
     # Configurar sidebar
     st.sidebar.markdown("<h7 style='color:#097da6;'>Ingresa el API Key de GROQ para generar el análisis:</h7>", unsafe_allow_html=True)
-    api_key = st.sidebar.text_input("API Key", value="", label_visibility="collapsed")
+    api_key = st.sidebar.text_input("API Key", value="", label_visibility="collapsed", type="password")
     st.sidebar.markdown("<h7 style='color:#097da6; text-align: justify;'>Si no sabes como generar el API Key, en este [Tutorial](https://www.youtube.com/watch?v=YPghgcC4p-E) se explica muy fácilmente. Este servicio de GROQ es totalmente gratuito.</h7>", unsafe_allow_html=True)
 
     # Cambiar el color de fondo de la página
@@ -83,7 +83,7 @@ def run():
 
             Name = st.text_input("**Nombre:**", "")
             Email = st.text_input("**Correo Electrónico:**", "")
-            Token = st.text_input("**Token BCCR:**", "")
+            Token = st.text_input("**Token BCCR:**", "", type="password")
             Indicador = dicc_indicador[variable][0]
 
             col1, col2 = st.columns(2, gap="small")
